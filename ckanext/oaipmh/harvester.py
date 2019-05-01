@@ -1,6 +1,5 @@
 import logging
 import json
-import urllib
 import urllib2
 import traceback
 
@@ -52,7 +51,7 @@ class OaipmhHarvester(HarvesterBase):
         :param harvest_job: HarvestJob object
         :returns: A list of HarvestObject ids
         '''
-        log.error("in gather stage: %s" % harvest_job.source.url)
+        log.info("in gather stage: %s" % harvest_job.source.url)
 
         try:
             harvest_obj_ids = []
@@ -104,7 +103,7 @@ class OaipmhHarvester(HarvesterBase):
                 harvest_job
             )
             return None
-        log.warn(
+        log.info(
             "Gather stage successfully finished with %s harvest objects"
             % len(harvest_obj_ids)
         )
@@ -134,7 +133,6 @@ class OaipmhHarvester(HarvesterBase):
     def _set_config(self, source_config):
         try:
             config_json = json.loads(source_config)
-            log.info('config_json: %s' % config_json)
             try:
                 username = config_json['username']
                 password = config_json['password']
@@ -144,14 +142,6 @@ class OaipmhHarvester(HarvesterBase):
 
             self.user = 'harvest'
             
-            '''
-            if type(setVars) is list:
-                setVars = [x.encode('ascii') for x in setVars]
-                self.set_spec = "&set=".join(setVars)
-                self.set_spec = urllib.quote(self.set_spec)
-            else:
-               self.set_spec = config_json.get('set', None)
-            '''
             self.set_spec = config_json.get('set', None)
             
             self.set_filter = config_json.get('filter', None)
@@ -297,7 +287,6 @@ class OaipmhHarvester(HarvesterBase):
 
             package_dict = {}
             content = json.loads(harvest_object.content)
-            log.info("Content Data %s " % content)
 
             package_dict['id'] = munge_title_to_name(harvest_object.guid)
             package_dict['name'] = package_dict['id']
@@ -336,9 +325,6 @@ class OaipmhHarvester(HarvesterBase):
                     package_dict['resources'].append({'name': ident, 'url':"https://doi.org/"+ident})
                     break
 
-            
-            # package_dict['resources'] = "https://doi.org/"
-
             # extract tags from 'type' and 'subject' field
             # everything else is added as extra field
             tags, extras = self._extract_tags_and_extras(content)
@@ -354,9 +340,6 @@ class OaipmhHarvester(HarvesterBase):
             package_dict['identifier'] = self._extract_relation(content)
 
             package_dict['references'] = self._extract_relation(content)
-
-            log.info("Source Identifier %s" % self._extract_relation(content))
-
 
             # groups aka projects
             groups = []
@@ -383,7 +366,7 @@ class OaipmhHarvester(HarvesterBase):
                 package_dict
             )
 
-            log.warn('Create/update package using dict: %s' % package_dict)
+            log.info('Create/update package using dict: %s' % package_dict)
             self._create_or_update_package(
                 package_dict,
                 harvest_object
@@ -391,7 +374,7 @@ class OaipmhHarvester(HarvesterBase):
 
             Session.commit()
 
-            log.warn("Finished record")
+            log.info("Finished record")
         except Exception, e:
             log.exception(e)
             self._save_object_error(
@@ -516,5 +499,5 @@ class OaipmhHarvester(HarvesterBase):
                 log.info('created the group ' + group['id'])
             group_ids.append(group['id'])
 
-        log.warn('Group ids: %s' % group_ids)
+        log.info('Group ids: %s' % group_ids)
         return group_ids
