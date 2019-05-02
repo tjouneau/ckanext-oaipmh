@@ -73,7 +73,7 @@ class OaipmhHarvester(HarvesterBase):
                 harvest_obj.save()
                 harvest_obj_ids.append(harvest_obj.id)
                 log.info("Harvest obj %s created" % harvest_obj.id)
-                return harvest_obj_ids # This is to get only one record
+                # return harvest_obj_ids # This is to get only one record
         except urllib2.HTTPError, e:
             log.exception(
                 'Gather stage failed on %s (%s): %s, %s'
