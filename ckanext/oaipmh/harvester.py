@@ -73,7 +73,7 @@ class OaipmhHarvester(HarvesterBase):
                 harvest_obj.save()
                 harvest_obj_ids.append(harvest_obj.id)
                 log.info("Harvest obj %s created" % harvest_obj.id)
-                # return harvest_obj_ids
+                return harvest_obj_ids # This is to get only one record
         except urllib2.HTTPError, e:
             log.exception(
                 'Gather stage failed on %s (%s): %s, %s'
@@ -315,6 +315,8 @@ class OaipmhHarvester(HarvesterBase):
             package_dict['license'] = self._extract_license_id(content)
 
             # add resources
+            '''
+            # Kept this purposely as few things are out of box
             url = self._get_possible_resource(harvest_object, content)
             if url:
                 package_dict['resources'] = self._extract_resources(url, content)
@@ -324,6 +326,9 @@ class OaipmhHarvester(HarvesterBase):
                 for ident in identifierContent:
                     package_dict['resources'].append({'name': ident, 'url':"https://doi.org/"+ident})
                     break
+            '''
+            package_dict['resources'] = []
+            package_dict['resources'].append({'name': package_dict['name'], 'url': self._extract_relation(content)})
 
             # extract tags from 'type' and 'subject' field
             # everything else is added as extra field
@@ -331,7 +336,7 @@ class OaipmhHarvester(HarvesterBase):
             package_dict['tags'] = tags
             package_dict['extras'] = extras
 
-            package_dict['theme'] = ', '.join(tags)
+            # package_dict['theme'] = ', '.join(tags)
 
             package_dict['modified'] = content['metadata_modified']
             package_dict['issued'] = self._extract_created_date(content)
@@ -340,6 +345,7 @@ class OaipmhHarvester(HarvesterBase):
             package_dict['identifier'] = self._extract_relation(content)
 
             package_dict['references'] = self._extract_relation(content)
+
 
             # groups aka projects
             groups = []
@@ -393,7 +399,7 @@ class OaipmhHarvester(HarvesterBase):
             'notes': 'description',
             'maintainer': 'publisher',
             'maintainer_email': 'maintainer_email',
-            'url': 'relation',
+            'url': 'relation'
         }
 
     def _extract_author(self, content):
