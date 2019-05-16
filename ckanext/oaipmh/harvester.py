@@ -141,9 +141,9 @@ class OaipmhHarvester(HarvesterBase):
                 self.credentials = None
 
             self.user = 'harvest'
-            
+
             self.set_spec = config_json.get('set', None)
-            
+
             self.set_filter = config_json.get('filter', None)
 
             self.md_format = config_json.get('metadata_prefix', 'oai_dc')
@@ -328,7 +328,7 @@ class OaipmhHarvester(HarvesterBase):
                     break
             '''
             package_dict['resources'] = []
-            package_dict['resources'].append({'name': package_dict['name'], 'url': self._extract_relation(content)})
+            package_dict['resources'].append({'name': 'Figshare', 'url': self._extract_relation(content)})
 
             # extract tags from 'type' and 'subject' field
             # everything else is added as extra field
@@ -407,13 +407,13 @@ class OaipmhHarvester(HarvesterBase):
 
     def _extract_license_id(self, content):
         return ', '.join(content['rights'])
-    
+
     def _extract_created_date(self, content):
         return ', '.join(content['date'])
 
     def _extract_relation(self, content):
         return ', '.join(content['relation'])
-        
+
     def _extract_identifier(self, content):
         return ', '.join(content['identifier'])
 
