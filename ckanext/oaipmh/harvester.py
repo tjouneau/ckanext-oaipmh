@@ -348,7 +348,9 @@ class OaipmhHarvester(HarvesterBase):
 
 
             # groups aka projects
+
             groups = []
+            """ Disabled as part of DATA-725 support issue
 
             # create group based on set
             if content['set_spec']:
@@ -363,7 +365,7 @@ class OaipmhHarvester(HarvesterBase):
             groups.extend(
                 self._extract_groups(content, context.copy())
             )
-
+            """
             package_dict['groups'] = groups
 
             # allow sub-classes to add additional fields
