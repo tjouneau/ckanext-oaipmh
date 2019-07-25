@@ -268,12 +268,12 @@ class OaipmhHarvester(HarvesterBase):
 
         if not harvest_object:
             log.error('No harvest object received')
-            self._save_object_error('No harvest object received')
+            self._save_object_error('No harvest object received', harvest_object)
             return False
 
         if not harvest_object.content:
             log.error('No harvest object received')
-            self._save_object_error('No harvest object received')
+            self._save_object_error('No harvest object received', harvest_object)
             return False
 
         try:
