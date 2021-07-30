@@ -45,7 +45,7 @@ oai_dc_reader = MetadataReader(
         'rights':           ('textList', 'oai_dc:dc/dc:rights/text()')  # noqa
     },
     namespaces={
-    'oai_dc': 'http://www.openarchives.org/OAI/2.0/oai_dc/',
-    'oai': 'http://www.openarchives.org/OAI/2.0/',
-    'dc': 'http://purl.org/dc/elements/1.1/'}
+        'oai_dc': 'http://www.openarchives.org/OAI/2.0/oai_dc/',
+        'oai': 'http://www.openarchives.org/OAI/2.0/',
+        'dc': 'http://purl.org/dc/elements/1.1/'}
 )
