@@ -51,7 +51,8 @@ class OaipmhHarvester(HarvesterBase):
         :param harvest_job: HarvestJob object
         :returns: A list of HarvestObject ids
         '''
-        log.debug("in gather stage: %s" % harvest_job.source.url)
+        log.info("in gather stage: %s" % harvest_job.source.url)
+
         try:
             harvest_obj_ids = []
             registry = self._create_metadata_registry()
@@ -62,7 +63,7 @@ class OaipmhHarvester(HarvesterBase):
                 self.credentials,
                 force_http_get=self.force_http_get
             )
-
+            # Start looking from here
             client.identify()  # check if identify works
             for header in self._identifier_generator(client):
                 harvest_obj = HarvestObject(
@@ -71,7 +72,8 @@ class OaipmhHarvester(HarvesterBase):
                 )
                 harvest_obj.save()
                 harvest_obj_ids.append(harvest_obj.id)
-                log.debug("Harvest obj %s created" % harvest_obj.id)
+                log.info("Harvest obj %s created" % harvest_obj.id)
+                # return harvest_obj_ids # This is to get only one record
         except urllib2.HTTPError, e:
             log.exception(
                 'Gather stage failed on %s (%s): %s, %s'
@@ -101,7 +103,7 @@ class OaipmhHarvester(HarvesterBase):
                 harvest_job
             )
             return None
-        log.debug(
+        log.info(
             "Gather stage successfully finished with %s harvest objects"
             % len(harvest_obj_ids)
         )
@@ -131,7 +133,6 @@ class OaipmhHarvester(HarvesterBase):
     def _set_config(self, source_config):
         try:
             config_json = json.loads(source_config)
-            log.debug('config_json: %s' % config_json)
             try:
                 username = config_json['username']
                 password = config_json['password']
@@ -140,7 +141,11 @@ class OaipmhHarvester(HarvesterBase):
                 self.credentials = None
 
             self.user = 'harvest'
+
             self.set_spec = config_json.get('set', None)
+
+            self.set_filter = config_json.get('filter', None)
+
             self.md_format = config_json.get('metadata_prefix', 'oai_dc')
             self.force_http_get = config_json.get('force_http_get', False)
 
@@ -161,7 +166,7 @@ class OaipmhHarvester(HarvesterBase):
         :param harvest_object: HarvestObject object
         :returns: True if everything went right, False if errors were found
         '''
-        log.debug("in fetch stage: %s" % harvest_object.guid)
+        log.info("in fetch stage: %s" % harvest_object.guid)
         try:
             self._set_config(harvest_object.job.source.config)
             registry = self._create_metadata_registry()
@@ -173,7 +178,7 @@ class OaipmhHarvester(HarvesterBase):
             )
             record = None
             try:
-                log.debug(
+                log.warn(
                     "Load %s with metadata prefix '%s'" %
                     (harvest_object.guid, self.md_format)
                 )
@@ -184,7 +189,7 @@ class OaipmhHarvester(HarvesterBase):
                     metadataPrefix=self.md_format
                 )
                 self._after_record_fetch(record)
-                log.debug('record found!')
+                log.info('record found!')
             except:
                 log.exception('getRecord failed for %s' % harvest_object.guid)
                 self._save_object_error(
@@ -194,8 +199,8 @@ class OaipmhHarvester(HarvesterBase):
                 return False
 
             header, metadata, _ = record
-            log.debug('metadata %s' % metadata)
-            log.debug('header %s' % header)
+            log.info('metadata %s' % metadata)
+            log.info('header %s' % header)
 
             try:
                 metadata_modified = header.datestamp().isoformat()
@@ -207,7 +212,7 @@ class OaipmhHarvester(HarvesterBase):
                 content_dict['set_spec'] = header.setSpec()
                 if metadata_modified:
                     content_dict['metadata_modified'] = metadata_modified
-                log.debug(content_dict)
+                log.warn(content_dict)
                 content = json.dumps(content_dict)
             except:
                 log.exception('Dumping the metadata failed!')
@@ -216,9 +221,14 @@ class OaipmhHarvester(HarvesterBase):
                     harvest_object
                 )
                 return False
+            if self.set_filter:
+                if any(setSpecVal == self.set_filter for setSpecVal in content_dict['set_spec']):
+                    harvest_object.content = content
+                    harvest_object.save()
+            else:
+                harvest_object.content = content
+                harvest_object.save()
 
-            harvest_object.content = content
-            harvest_object.save()
         except Exception, e:
             log.exception(e)
             self._save_object_error(
@@ -256,10 +266,14 @@ class OaipmhHarvester(HarvesterBase):
         :returns: True if everything went right, False if errors were found
         '''
 
-        log.debug("in import stage: %s" % harvest_object.guid)
         if not harvest_object:
             log.error('No harvest object received')
-            self._save_object_error('No harvest object received')
+            self._save_object_error('No harvest object received', harvest_object)
+            return False
+
+        if not harvest_object.content:
+            log.error('No harvest object received')
+            self._save_object_error('No harvest object received', harvest_object)
             return False
 
         try:
@@ -273,7 +287,6 @@ class OaipmhHarvester(HarvesterBase):
 
             package_dict = {}
             content = json.loads(harvest_object.content)
-            log.debug(content)
 
             package_dict['id'] = munge_title_to_name(harvest_object.guid)
             package_dict['name'] = package_dict['id']
@@ -299,10 +312,23 @@ class OaipmhHarvester(HarvesterBase):
 
             # add license
             package_dict['license_id'] = self._extract_license_id(content)
+            package_dict['license'] = self._extract_license_id(content)
 
             # add resources
+            '''
+            # Kept this purposely as few things are out of box
             url = self._get_possible_resource(harvest_object, content)
-            package_dict['resources'] = self._extract_resources(url, content)
+            if url:
+                package_dict['resources'] = self._extract_resources(url, content)
+            else:
+                identifierContent = content.get('identifier')
+                package_dict['resources'] = []
+                for ident in identifierContent:
+                    package_dict['resources'].append({'name': ident, 'url':"https://doi.org/"+ident})
+                    break
+            '''
+            package_dict['resources'] = []
+            package_dict['resources'].append({'name': 'Figshare', 'url': self._extract_relation(content)})
 
             # extract tags from 'type' and 'subject' field
             # everything else is added as extra field
@@ -310,12 +336,24 @@ class OaipmhHarvester(HarvesterBase):
             package_dict['tags'] = tags
             package_dict['extras'] = extras
 
+            # package_dict['theme'] = ', '.join(tags)
+
+            package_dict['modified'] = content['metadata_modified']
+            package_dict['issued'] = self._extract_created_date(content)
+            package_dict['source_identifier'] = self._extract_identifier(content)
+
+            package_dict['identifier'] = self._extract_relation(content)
+
+            package_dict['references'] = self._extract_relation(content)
+
+
             # groups aka projects
+
             groups = []
+            """ Disabled as part of DATA-725 support issue
 
             # create group based on set
             if content['set_spec']:
-                log.debug('set_spec: %s' % content['set_spec'])
                 groups.extend(
                     self._find_or_create_groups(
                         content['set_spec'],
@@ -327,7 +365,7 @@ class OaipmhHarvester(HarvesterBase):
             groups.extend(
                 self._extract_groups(content, context.copy())
             )
-
+            """
             package_dict['groups'] = groups
 
             # allow sub-classes to add additional fields
@@ -336,7 +374,7 @@ class OaipmhHarvester(HarvesterBase):
                 package_dict
             )
 
-            log.debug('Create/update package using dict: %s' % package_dict)
+            log.info('Create/update package using dict: %s' % package_dict)
             self._create_or_update_package(
                 package_dict,
                 harvest_object
@@ -344,7 +382,7 @@ class OaipmhHarvester(HarvesterBase):
 
             Session.commit()
 
-            log.debug("Finished record")
+            log.info("Finished record")
         except Exception, e:
             log.exception(e)
             self._save_object_error(
@@ -363,7 +401,7 @@ class OaipmhHarvester(HarvesterBase):
             'notes': 'description',
             'maintainer': 'publisher',
             'maintainer_email': 'maintainer_email',
-            'url': 'source',
+            'url': 'relation'
         }
 
     def _extract_author(self, content):
@@ -371,6 +409,15 @@ class OaipmhHarvester(HarvesterBase):
 
     def _extract_license_id(self, content):
         return ', '.join(content['rights'])
+
+    def _extract_created_date(self, content):
+        return ', '.join(content['date'])
+
+    def _extract_relation(self, content):
+        return ', '.join(content['relation'])
+
+    def _extract_identifier(self, content):
+        return ', '.join(content['identifier'])
 
     def _extract_tags_and_extras(self, content):
         extras = []
@@ -416,7 +463,7 @@ class OaipmhHarvester(HarvesterBase):
 
     def _extract_resources(self, url, content):
         resources = []
-        log.debug('URL of ressource: %s' % url)
+        log.warn('URL of ressource: %s' % url)
         if url:
             try:
                 resource_format = content['format'][0]
@@ -444,7 +491,7 @@ class OaipmhHarvester(HarvesterBase):
         return package_dict
 
     def _find_or_create_groups(self, groups, context):
-        log.debug('Group names: %s' % groups)
+        log.info('Group names: %s' % groups)
         group_ids = []
         for group_name in groups:
             data_dict = {
@@ -460,5 +507,5 @@ class OaipmhHarvester(HarvesterBase):
                 log.info('created the group ' + group['id'])
             group_ids.append(group['id'])
 
-        log.debug('Group ids: %s' % group_ids)
+        log.info('Group ids: %s' % group_ids)
         return group_ids
