@@ -1,8 +1,7 @@
-from __future__ import absolute_import
-from builtins import str
+from six import text_type
+from six.moves import urllib as urllib
 import logging
 import json
-from six.moves import urllib as urllib
 import traceback
 
 from ckan.model import Session
@@ -17,8 +16,8 @@ from ckanext.harvest.model import HarvestObject
 import oaipmh.client
 from oaipmh.metadata import MetadataRegistry
 
-from .metadata import oai_ddi_reader
-from .metadata import oai_dc_reader
+from ckanext.oaipmh.metadata import oai_ddi_reader
+from ckanext.oaipmh.metadata import oai_dc_reader
 
 log = logging.getLogger(__name__)
 
