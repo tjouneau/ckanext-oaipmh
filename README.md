@@ -43,14 +43,25 @@ On the command line do this:
 - `cd` to the ckan directory, e.g. `/usr/lib/ckan/default/src/ckan`
 - start the consumers:
 
-```
-paster --plugin=ckanext-oaipmh harvester gather_consumer &
-paster --plugin=ckanext-oaipmh harvester fetch_consumer &
+```bash
+# ckan >= 2.9
+ckan harvester gather-consumer
+ckan harvester fetch-consumer
+
+# ckan < 2.9
+paster --plugin=ckanext-oaipmh harvester gather_consumer
+paster --plugin=ckanext-oaipmh harvester fetch_consumer
 ```
 
 - run the job:
 
-    `paster --plugin=ckanext-oaipmh harvester run`
+```bash
+# ckan >= 2.9
+ckan harvester run
+
+# ckan < 2.9
+paster --plugin=ckanext-oaipmh harvester run
+```
 
 The harvester should now start and import the OAI-PMH metadata.
 
