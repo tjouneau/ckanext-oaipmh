@@ -1,7 +1,6 @@
 # CKAN Harvester for OAI-PMH
-
-[![Build Status](https://travis-ci.org/openresearchdata/ckanext-oaipmh.svg?branch=master)](https://travis-ci.org/openresearchdata/ckanext-oaipmh)
-
+## CKAN < 2.9 support
+As of `1.1.0` this extention has been made to work with CKAN 2.9. While attempts have been made to maintain compatibility with prior version of CKAN, there may be issues. If any issues are discovered we are happy to accept PRs. Alternatively for compatibility <2.9 the `1.0.0` tag can be used.
 ## Instructions
 
 ### Installation
@@ -10,7 +9,7 @@ Use `pip` to install this plugin. This example installs it in `/var/www`
 
 ```bash
 source /home/www-data/pyenv/bin/activate
-pip install -e git+https://github.com/openresearchdata/ckanext-oaipmh.git#egg=ckanext-oaipmh --src /var/www
+pip install -e git+https://github.com/mediasuitenz/ckanext-oaipmh.git#egg=ckanext-oaipmh --src /var/www
 cd /var/www/ckanext-oaipmh
 pip install -r requirements.txt
 python setup.py develop
