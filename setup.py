@@ -1,14 +1,13 @@
 from setuptools import setup, find_packages
-import sys, os
 
-version = '1.0.0'
+version = '1.1.0'
 
 setup(
     name='ckanext-oaipmh',
     version=version,
     description="OAI-PMH Harvester for CKAN",
     long_description="",
-    classifiers=[], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
+    classifiers=[],
     keywords='',
     author='Liip AG',
     author_email='ogd@liip.ch',
@@ -21,9 +20,8 @@ setup(
     install_requires=[
         # -*- Extra requirements: -*-
     ],
-    entry_points=\
-    """
-    [ckan.plugins]
-    oaipmh_harvester=ckanext.oaipmh.harvester:OaipmhHarvester
-    """,
+    entry_points='''
+        [ckan.plugins]
+        oaipmh_harvester=ckanext.oaipmh.harvester:OaipmhHarvester
+    ''',
 )

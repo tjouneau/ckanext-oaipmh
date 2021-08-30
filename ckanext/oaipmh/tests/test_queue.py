@@ -1,12 +1,9 @@
-import os
 from ckanext.oaipmh.harvester import OaipmhHarvester
 import ckanext.harvest.model as harvest_model
-from ckanext.harvest.model import HarvestObject, HarvestObjectExtra
 import ckanext.harvest.queue as queue
-import json
 import ckan.logic as logic
 from ckan import model
-from pprint import pprint
+from builtins import object
 
 
 class TestOaipmhHarvester(OaipmhHarvester):
@@ -32,12 +29,12 @@ class TestHarvestQueue(object):
 
     def test_01_basic_harvester(self):
 
-        ### make sure queues/exchanges are created first and are empty
-        consumer = queue.get_consumer('ckan.harvest.gather','harvest_job_id')
-        consumer_fetch = queue.get_consumer('ckan.harvest.fetch','harvest_object_id')
+        # make sure queues/exchanges are created first and are empty
+        consumer = queue.get_consumer('ckan.harvest.gather', 'harvest_job_id')
+        consumer_fetch = queue.get_consumer(
+            'ckan.harvest.fetch', 'harvest_object_id')
         consumer.queue_purge(queue='ckan.harvest.gather')
         consumer_fetch.queue_purge(queue='ckan.harvest.fetch')
-
 
         user = logic.get_action('get_site_user')(
             {'model': model, 'ignore_auth': True}, {}
@@ -60,7 +57,7 @@ class TestHarvestQueue(object):
 
         harvest_job = logic.get_action('harvest_job_create')(
             context,
-            {'source_id':harvest_source['id']}
+            {'source_id': harvest_source['id']}
         )
 
         job_id = harvest_job['id']
@@ -71,7 +68,7 @@ class TestHarvestQueue(object):
 
         logic.get_action('harvest_jobs_run')(
             context,
-            {'source_id':harvest_source['id']}
+            {'source_id': harvest_source['id']}
         )
 
         assert logic.get_action('harvest_job_show')(

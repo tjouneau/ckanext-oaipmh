@@ -1,6 +1,7 @@
+from six import text_type
+from six.moves import urllib as urllib
 import logging
 import json
-import urllib2
 import traceback
 
 from ckan.model import Session
@@ -15,8 +16,8 @@ from ckanext.harvest.model import HarvestObject
 import oaipmh.client
 from oaipmh.metadata import MetadataRegistry
 
-from metadata import oai_ddi_reader
-from metadata import oai_dc_reader
+from ckanext.oaipmh.metadata import oai_ddi_reader
+from ckanext.oaipmh.metadata import oai_dc_reader
 
 log = logging.getLogger(__name__)
 
@@ -74,7 +75,7 @@ class OaipmhHarvester(HarvesterBase):
                 harvest_obj_ids.append(harvest_obj.id)
                 log.info("Harvest obj %s created" % harvest_obj.id)
                 # return harvest_obj_ids # This is to get only one record
-        except urllib2.HTTPError, e:
+        except urllib.error.HTTPError as e:
             log.exception(
                 'Gather stage failed on %s (%s): %s, %s'
                 % (
@@ -89,7 +90,7 @@ class OaipmhHarvester(HarvesterBase):
                 harvest_job.source.url, harvest_job
             )
             return None
-        except Exception, e:
+        except Exception as e:
             log.exception(
                 'Gather stage failed on %s: %s'
                 % (
@@ -190,7 +191,7 @@ class OaipmhHarvester(HarvesterBase):
                 )
                 self._after_record_fetch(record)
                 log.info('record found!')
-            except:
+            except Exception:
                 log.exception('getRecord failed for %s' % harvest_object.guid)
                 self._save_object_error(
                     'Get record failed for %s!' % harvest_object.guid,
@@ -204,7 +205,7 @@ class OaipmhHarvester(HarvesterBase):
 
             try:
                 metadata_modified = header.datestamp().isoformat()
-            except:
+            except Exception:
                 metadata_modified = None
 
             try:
@@ -214,7 +215,7 @@ class OaipmhHarvester(HarvesterBase):
                     content_dict['metadata_modified'] = metadata_modified
                 log.warn(content_dict)
                 content = json.dumps(content_dict)
-            except:
+            except Exception:
                 log.exception('Dumping the metadata failed!')
                 self._save_object_error(
                     'Dumping the metadata failed!',
@@ -222,14 +223,15 @@ class OaipmhHarvester(HarvesterBase):
                 )
                 return False
             if self.set_filter:
-                if any(setSpecVal == self.set_filter for setSpecVal in content_dict['set_spec']):
+                if any(setSpecVal == self.set_filter
+                       for setSpecVal in content_dict['set_spec']):
                     harvest_object.content = content
                     harvest_object.save()
             else:
                 harvest_object.content = content
                 harvest_object.save()
 
-        except Exception, e:
+        except Exception as e:
             log.exception(e)
             self._save_object_error(
                 (
@@ -268,12 +270,14 @@ class OaipmhHarvester(HarvesterBase):
 
         if not harvest_object:
             log.error('No harvest object received')
-            self._save_object_error('No harvest object received', harvest_object)
+            self._save_object_error(
+                'No harvest object received', harvest_object)
             return False
 
         if not harvest_object.content:
             log.error('No harvest object received')
-            self._save_object_error('No harvest object received', harvest_object)
+            self._save_object_error(
+                'No harvest object received', harvest_object)
             return False
 
         try:
@@ -293,7 +297,7 @@ class OaipmhHarvester(HarvesterBase):
 
             mapping = self._get_mapping()
 
-            for ckan_field, oai_field in mapping.iteritems():
+            for ckan_field, oai_field in list(mapping.items()):
                 try:
                     package_dict[ckan_field] = content[oai_field][0]
                 except (IndexError, KeyError):
@@ -315,20 +319,9 @@ class OaipmhHarvester(HarvesterBase):
             package_dict['license'] = self._extract_license_id(content)
 
             # add resources
-            '''
-            # Kept this purposely as few things are out of box
-            url = self._get_possible_resource(harvest_object, content)
-            if url:
-                package_dict['resources'] = self._extract_resources(url, content)
-            else:
-                identifierContent = content.get('identifier')
-                package_dict['resources'] = []
-                for ident in identifierContent:
-                    package_dict['resources'].append({'name': ident, 'url':"https://doi.org/"+ident})
-                    break
-            '''
             package_dict['resources'] = []
-            package_dict['resources'].append({'name': 'Figshare', 'url': self._extract_relation(content)})
+            package_dict['resources'].append(
+                {'name': 'Figshare', 'url': self._extract_relation(content)})
 
             # extract tags from 'type' and 'subject' field
             # everything else is added as extra field
@@ -340,32 +333,15 @@ class OaipmhHarvester(HarvesterBase):
 
             package_dict['modified'] = content['metadata_modified']
             package_dict['issued'] = self._extract_created_date(content)
-            package_dict['source_identifier'] = self._extract_identifier(content)
+            package_dict['source_identifier'] = self._extract_identifier(
+                content)
 
             package_dict['identifier'] = self._extract_relation(content)
 
             package_dict['references'] = self._extract_relation(content)
 
-
             # groups aka projects
-
             groups = []
-            """ Disabled as part of DATA-725 support issue
-
-            # create group based on set
-            if content['set_spec']:
-                groups.extend(
-                    self._find_or_create_groups(
-                        content['set_spec'],
-                        context.copy()
-                    )
-                )
-
-            # add groups from content
-            groups.extend(
-                self._extract_groups(content, context.copy())
-            )
-            """
             package_dict['groups'] = groups
 
             # allow sub-classes to add additional fields
@@ -383,7 +359,7 @@ class OaipmhHarvester(HarvesterBase):
             Session.commit()
 
             log.info("Finished record")
-        except Exception, e:
+        except Exception as e:
             log.exception(e)
             self._save_object_error(
                 (
@@ -422,8 +398,8 @@ class OaipmhHarvester(HarvesterBase):
     def _extract_tags_and_extras(self, content):
         extras = []
         tags = []
-        for key, value in content.iteritems():
-            if key in self._get_mapping().values():
+        for key, value in list(content.items()):
+            if key in list(self._get_mapping().values()):
                 continue
             if key in ['type', 'subject']:
                 if type(value) is list:
@@ -502,7 +478,7 @@ class OaipmhHarvester(HarvesterBase):
             try:
                 group = get_action('group_show')(context.copy(), data_dict)
                 log.info('found the group ' + group['id'])
-            except:
+            except Exception:
                 group = get_action('group_create')(context.copy(), data_dict)
                 log.info('created the group ' + group['id'])
             group_ids.append(group['id'])
