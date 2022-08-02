@@ -428,9 +428,9 @@ class OaipmhHarvester(HarvesterBase):
                 except (ValueError, TypeError):
                     continue
 
-            extras.append((key, value))
+            extras.append({'key': key, 'value': value})
 
-        tags = [munge_tag(tag[:100]) for tag in tags]
+        tags = [{'name': munge_tag(tag[:100])} for tag in tags]
 
         return (tags, extras)
 
