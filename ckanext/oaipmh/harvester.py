@@ -359,7 +359,8 @@ class OaipmhHarvester(HarvesterBase):
             log.info('Create/update package using dict: %s' % package_dict)
             self._create_or_update_package(
                 package_dict,
-                harvest_object
+                harvest_object,
+                'package_show'
             )
 
             Session.commit()
