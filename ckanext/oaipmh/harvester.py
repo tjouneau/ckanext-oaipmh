@@ -227,6 +227,12 @@ class OaipmhHarvester(HarvesterBase):
                        for setSpecVal in content_dict['set_spec']):
                     harvest_object.content = content
                     harvest_object.save()
+                else:
+                    log.info((
+                        'Skipping harvest due to filter configured: %s, set_spec is %s'
+                        % (self.set_filter, content_dict['set_spec'])
+                    ))
+                    return False
             else:
                 harvest_object.content = content
                 harvest_object.save()
