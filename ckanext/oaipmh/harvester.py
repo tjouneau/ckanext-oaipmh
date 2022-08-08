@@ -227,6 +227,12 @@ class OaipmhHarvester(HarvesterBase):
                        for setSpecVal in content_dict['set_spec']):
                     harvest_object.content = content
                     harvest_object.save()
+                else:
+                    log.info((
+                        'Skipping harvest due to filter configured: %s, set_spec is %s'
+                        % (self.set_filter, content_dict['set_spec'])
+                    ))
+                    return False
             else:
                 harvest_object.content = content
                 harvest_object.save()
@@ -353,7 +359,8 @@ class OaipmhHarvester(HarvesterBase):
             log.info('Create/update package using dict: %s' % package_dict)
             self._create_or_update_package(
                 package_dict,
-                harvest_object
+                harvest_object,
+                'package_show'
             )
 
             Session.commit()
@@ -421,9 +428,9 @@ class OaipmhHarvester(HarvesterBase):
                 except (ValueError, TypeError):
                     continue
 
-            extras.append((key, value))
+            extras.append({'key': key, 'value': value})
 
-        tags = [munge_tag(tag[:100]) for tag in tags]
+        tags = [{'name': munge_tag(tag[:100])} for tag in tags]
 
         return (tags, extras)
 
