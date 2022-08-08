@@ -39,7 +39,7 @@ class OaipmhHarvester(HarvesterBase):
 
     def gather_stage(self, harvest_job):
         '''
-        The gather stage will recieve a HarvestJob object and will be
+        The gather stage will receive a HarvestJob object and will be
         responsible for:
             - gathering all the necessary objects to fetch on a later.
               stage (e.g. for a CSW server, perform a GetRecords request)
@@ -67,6 +67,13 @@ class OaipmhHarvester(HarvesterBase):
             # Start looking from here
             client.identify()  # check if identify works
             for header in self._identifier_generator(client):
+                if self.set_filter and self.set_filter not in header.setSpec():
+                    log.warn(
+                        'config:set %s matches setSpec list %s, but filter %s does not'
+                        % (self.set_spec, header.setSpec(), self.set_filter)
+                    )
+                    continue
+
                 harvest_obj = HarvestObject(
                     guid=header.identifier(),
                     job=harvest_job
@@ -222,20 +229,9 @@ class OaipmhHarvester(HarvesterBase):
                     harvest_object
                 )
                 return False
-            if self.set_filter:
-                if any(setSpecVal == self.set_filter
-                       for setSpecVal in content_dict['set_spec']):
-                    harvest_object.content = content
-                    harvest_object.save()
-                else:
-                    log.info((
-                        'Skipping harvest due to filter configured: %s, set_spec is %s'
-                        % (self.set_filter, content_dict['set_spec'])
-                    ))
-                    return False
-            else:
-                harvest_object.content = content
-                harvest_object.save()
+
+            harvest_object.content = content
+            harvest_object.save()
 
         except Exception as e:
             log.exception(e)
