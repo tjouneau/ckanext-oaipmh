@@ -1,7 +1,7 @@
 # Non-functional, DO NOT USE
 This version forked from an oldish but functional repo is NOT for use, don't waste your time! :)
 
-# CKAN Harvester for OAI-PMH
+~~# CKAN Harvester for OAI-PMH
 ## CKAN < 2.9 support
 As of `1.1.0` this extention has been made to work with CKAN 2.9. While attempts have been made to maintain compatibility with prior version of CKAN, there may be issues. If any issues are discovered we are happy to accept PRs. Alternatively for compatibility <2.9 the `1.0.0` tag can be used.
 ## Instructions
@@ -72,7 +72,7 @@ The harvester should now start and import the OAI-PMH metadata.
 To make it easier to develop, tests are setup that allow to do that:
 
     . ~/default/bin/activate
-    cd /var/www/ckanext-oaipmh
+    cd /var/www/ckanext-oaipmh~~
 
     nosetests --logging-filter=ckanext.oaipmh.harvester --ckan --with-pylons=test.ini ckanext/oaipmh/tests
 
